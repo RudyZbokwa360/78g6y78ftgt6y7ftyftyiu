@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Imposter — Kategorie</title>
+
+  <style>
+    body{
+      font-family:Arial;
+      margin:0;
+      padding:0;
+      background:#0d1117;
+      color:#e6eef6;
+      background-image: url("generated-image-b1669652-6baa-44c6-b096-b6796d850167.jpg");
+      background-size:cover;
+      background-position:center;
+      background-attachment:fixed;
+    }
+
+    .crewmate{
+      position:absolute;
+      width:160px;
+      filter:drop-shadow(0 0 12px rgba(0,255,255,0.5));
+      pointer-events:none;
+      opacity:0.85;
+    }
+    .top-right{ top:15px; right:15px; }
+    .bottom-left{ bottom:15px; left:15px; }
+
+    .wrap{
+      max-width:600px;
+      margin:0 auto;
+      padding:20px;
+      position:relative;
+      z-index:5;
+    }
+
+    .card{
+      background:rgba(22,27,34,0.9);
+      padding:16px;
+      border-radius:10px;
+      margin-top:20px;
+      box-shadow:0 0 12px rgba(0,0,0,.4);
+      backdrop-filter:blur(4px);
+    }
+
+    button{
+      padding:12px 18px;
+      border:none;
+      border-radius:8px;
+      background:#58a6ff;
+      color:#000;
+      font-weight:700;
+      cursor:pointer;
+      width:100%;
+      box-shadow:0 0 10px rgba(88,166,255,.5);
+      transition:0.2s;
+    }
+    button:hover{
+      transform:scale(1.03);
+    }
+
+    input{
+      padding:8px;
+      border-radius:6px;
+      border:none;
+      width:100%;
+    }
+
+    .center{text-align:center}
+
+    .catBtn{
+      padding:20px;
+      background:rgba(34,34,34,0.8);
+      border-radius:10px;
+      text-align:center;
+      cursor:pointer;
+      font-weight:700;
+      border:2px solid #333;
+      user-select:none;
+      transition:0.2s;
+      box-shadow:0 0 8px rgba(0,0,0,.4);
+    }
+    .catBtn:hover{ background:#333; }
+
+    .catSelected{
+      background:#444 !important;
+      border-color:#58a6ff;
+      box-shadow:0 0 12px rgba(88,166,255,.4);
+    }
+
+    .names input{margin-top:6px}
+    #hideBtn{margin-top:10px;display:none;}
+    
+    #secret img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <h1>inpostor by nie ogladac reklam</h1>
+
+  <div class="card" id="setup">
+    <label>Liczba graczy</label>
+    <input id="playersCount" type="number" min="3" max="20" value="5" />
+
+    <button style="margin-top:10px" id="genInputs">Utwórz pola na imiona</button>
+    <div id="nameInputs" class="names"></div>
+
+    <label style="margin-top:15px">Impostorzy</label>
+    <input id="impostorCount" type="number" min="1" max="5" value="1" />
+
+    <label style="margin-top:15px;">Wybierz kategorię</label>
+
+    <div id="categoryBox" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div class="catBtn" data-cat="filmy">Filmy</div>
+      <div class="catBtn" data-cat="jedzenie">Jedzenie</div>
+      <div class="catBtn" data-cat="zwierzeta">Zwierzęta</div>
+      <div class="catBtn" data-cat="sport">Sport</div>
+      <div class="catBtn" data-cat="kraje">Kraje</div>
+      <div class="catBtn" data-cat="memy">Memy</div>
+      <div class="catBtn" data-cat="gry">Gry</div>
+      <div class="catBtn" data-cat="alkohole">alkohole</div>
+      <div class="catBtn" data-cat="artysci_muzyczni">artysci muzyczni</div>
+      <div class="catBtn" data-cat="brainrot">brainrot</div>
+      <div class="catBtn" data-cat="anime">anime</div>
+    </div>
+
+    <input id="category" type="hidden" value="filmy">
+
+    <button style="margin-top:20px" id="startBtn">Start gry</button>
+  </div>
+
+  <div class="card" id="reveal" style="display:none">
+    <h3 id="turnInfo">Gracz 1 — sprawdź swoją rolę</h3>
+
+    <div id="secret"
+         style="display:none;margin-top:10px;background:#0d1117;padding:12px;border-radius:8px">
+    </div>
+
+    <div class="center" style="margin-top:14px">
+      <button id="showRoleBtn">Pokaż rolę</button>
+      <button id="hideBtn">Zasłoń role</button>
+      <button id="nextPlayerBtn" style="display:none">Następny gracz</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let players = [];
+let turn = 0;
+let crewWord = "";
+let currentCategory = "";
+
+const WORDS = {
+  filmy:["Avatar","Matrix","Shrek","Wilk z Wall Street","Titanic","Gladiator"],
+  jedzenie:["Pizza","Makaron","Burger","Czekolada","Ramen","Tort"],
+  zwierzeta:["Lew","Słoń","Tygrys","Żyrafa","Krokodyl","Pies"],
+  sport:["Piłka nożna","Koszykówka","Tenis","Boks","Siatkówka","Hokej"],
+  kraje:["Polska","Hiszpania","Japonia","Egipt","Australia","Niemcy"],
+
+  memy: [
+    { name: "mem1", img: "img1.jpg", hint: "głupiego to az milo posluchac" },
+    { name: "mem2", img: "img2.jpg", hint: "clash" },
+    { name: "mem3", img: "img3.jpg", hint: "pies" },
+    { name: "mem4", img: "img4.jpg", hint: "wilk" },
+    { name: "mem5", img: "img5.jpg", hint: "starszy pan" },
+    { name: "mem6", img: "img6.jpg", hint: "zboczony zielony" },
+    { name: "mem7", img: "img7.jpg", hint: "hacker" },
+    { name: "mem8", img: "img8.jpg", hint: "czas" }
+  ],
+
+  gry:["Wiedzmin 3","the last of us","fortnite","the forest","cyberpunk 2077","cs go"],
+  alkohole:["wino","wóda","piwo","spirytus","whisky","likier"],
+  brainrot:["skibidi toilet","sigma","tung tung sahur","mango","nie wiem jakie sa brainroty","67"],
+  artysci_muzyczni:["chivas","vkie","nirvana","bedoes","pezet","PRO8L3M","paluch","kukon","taco","samuraj","szpaku","oki","słon","jan-rapowanie","sobel","fukaj","white","juice wrld","lil peep","malik montana","mata","fagata","billie eilish"],
+  anime:["naruto","boruto","jojo","pokemony","jujutsu kaisen","death note"]
+};
+
+const HINTS = {
+  "Avatar": "niebieskie stworki",
+  "Matrix": "tabletki",
+  "Shrek": "zielone",
+  "Wilk z Wall Street": "kamblerka",
+  "Titanic": "namaluj mnie jak jedna z swoich francuskich prostytutek",
+  "Gladiator": "Starożytny Rzym",
+
+  "Pizza": "koło",
+  "Makaron": "soli sie",
+  "Burger": "mieso salata",
+  "Czekolada": "kakao",
+  "Ramen": "Japonia",
+  "Tort": "świeczki",
+
+  "Lew": "grzywa",
+  "Słoń": "duzy nos duzy fiut",
+  "Tygrys": "Pasiasty",
+  "Żyrafa": "Długi szyja",
+  "Krokodyl": "zielony",
+  "Pies": "Najlepszy przyjaciel człowieka",
+
+  "Piłka nożna": "11",
+  "Koszykówka": "czarni",
+  "Tenis": "penis",
+  "Boks": "ring",
+  "Siatkówka": "hubert",
+  "Hokej": "kij",
+
+  "Polska": "Kraj w Europie Środkowej",
+  "Hiszpania": "pozycja seksualna",
+  "Japonia": "Kraj kwitnącej wiśni",
+  "Egipt": "piasek",
+  "Australia": "Kraj kangurów",
+  "Niemcy": "reka",
+
+  "Wiedzmin 3": "jaskółka",
+  "the last of us": "gitara",
+  "fortnite": "kilof",
+  "the forest": "drzewo",
+  "cyberpunk 2077": "rock man",
+  "cs go": "skiny",
+
+  "wino": "amarena",
+  "wóda": "popularne",
+  "piwo": "szczanie",
+  "spirytus": "mocne",
+  "whisky": "cola",
+  "likier": "słodki i czarno bialy w sensie jeden taki jest",
+
+  "skibidi toilet": "sranie",
+  "sigma": "alfa",
+  "tung tung sahur": "drewno",
+  "mango": "jedzenie",
+  "nie wiem jakie sa brainroty": "jak to sie wylosowalo to nie wiem",
+  "67": "rece",
+
+  "chivas":"emo",
+  "vkie":"silesia",
+  "nirvana":"nie zyje",
+  "bedoes":"2115",
+  "pezet":"plan b",
+  "PRO8L3M":"kazdy je ma",
+  "paluch":"bor",
+  "kukon":"ogrody",
+  "taco":"jedzenie",
+  "samuraj":"cyberpunk",
+  "szpaku":"gugu",
+  "oki":"oio",
+  "słon":"bdf",
+  "jan-rapowanie":"gatunek muzyczny",
+  "sobel":"motyle",
+  "fukaj":"papierosy",
+  "white":"2115",
+  "juice wrld":"narkoman",
+  "lil peep":"depresja",
+  "malik montana":"gm2l",
+  "mata":"hwdp",
+  "fagata":"young leosia",
+  "billie eilish":"xxx",
+
+  "naruto":"wioski",
+  "boruto":"nowa generacja",
+  "jojo":"dziwne stroje",
+  "pokemony":"ludzie i stworki",
+  "jujutsu kaisen":"klątwy",
+  "death note":"śmierć"
+};
+
+const startBtn = document.getElementById('startBtn');
+const reveal = document.getElementById('reveal');
+const turnInfo = document.getElementById('turnInfo');
+const secret = document.getElementById('secret');
+const showRoleBtn = document.getElementById('showRoleBtn');
+const hideBtn = document.getElementById('hideBtn');
+const nextPlayerBtn = document.getElementById('nextPlayerBtn');
+const genInputs = document.getElementById('genInputs');
+const nameInputs = document.getElementById('nameInputs');
+
+document.querySelectorAll(".catBtn").forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll(".catBtn").forEach(b=>b.classList.remove("catSelected"));
+    btn.classList.add("catSelected");
+    document.getElementById("category").value = btn.dataset.cat;
+  };
+});
+
+genInputs.onclick=()=>{
+  const n = Number(document.getElementById('playersCount').value);
+  nameInputs.innerHTML="";
+  for(let i=1;i<=n;i++){
+    const inp=document.createElement('input');
+    inp.placeholder=`Imię gracza ${i}`;
+    inp.id=`playerName${i}`;
+    nameInputs.appendChild(inp);
+  }
+};
+
+startBtn.onclick=()=>{
+  const n = Number(document.getElementById('playersCount').value);
+  currentCategory = document.getElementById('category').value;
+
+  players=[];
+  for(let i=1;i<=n;i++){
+    const field=document.getElementById(`playerName${i}`);
+    const name=field&&field.value.trim()!==""?field.value:`Gracz ${i}`;
+    players.push({id:i,name:name,role:'crew'});
+  }
+
+  const words=[...WORDS[currentCategory]];
+  words.sort(()=>Math.random()-0.5);
+  crewWord=words[0];
+
+  randomizeRoles();
+  turn=0;
+  document.getElementById('setup').style.display='none';
+  reveal.style.display='block';
+  updateTurn();
+};
+
+function randomizeRoles(){
+  const imp = Number(document.getElementById('impostorCount').value);
+  players.forEach(p=>p.role='crew');
+
+  const indices=[];
+  while(indices.length<imp){
+    const r=Math.floor(Math.random()*players.length);
+    if(!indices.includes(r)) indices.push(r);
+  }
+  indices.forEach(i=>players[i].role='imp');
+}
+
+function updateTurn(){
+  turnInfo.textContent=`${players[turn].name} — sprawdź swoją rolę`;
+  secret.style.display='none';
+  showRoleBtn.style.display='inline-block';
+  hideBtn.style.display='none';
+  nextPlayerBtn.style.display='none';
+}
+
+showRoleBtn.onclick=()=>{
+  const p=players[turn];
+  secret.style.display='block';
+
+  if(p.role==='imp'){
+    let hint = "";
+    
+    if(currentCategory === 'memy' && typeof crewWord === 'object' && crewWord.hint){
+      hint = crewWord.hint;
+    } else {
+      hint = HINTS[crewWord] || "Brak podpowiedzi";
+    }
+    
+    secret.innerHTML=`<b>IMPOSTOR</b><br>${hint}`;
+    
+  } else {
+    if(currentCategory === 'memy' && typeof crewWord === 'object' && crewWord.img){
+      secret.innerHTML=`<b>CREWMATE</b><br><img src="${crewWord.img}" alt="mem">`;
+    } else {
+      secret.innerHTML=`<b>CREWMATE</b><br>${crewWord}`;
+    }
+  }
+
+  showRoleBtn.style.display='none';
+  hideBtn.style.display='inline-block';
+};
+
+hideBtn.onclick=()=>{
+  secret.style.display='none';
+  hideBtn.style.display='none';
+  nextPlayerBtn.style.display='inline-block';
+};
+
+nextPlayerBtn.onclick=()=>{
+  turn++;
+  if(turn>=players.length){
+    reveal.innerHTML=`
+      <h2 class="center">Wszyscy gracze sprawdzili role!</h2>
+      <div class="center" style="margin-top:20px">
+        <button id="newRoundBtn">Nowa runda</button>
+      </div>`;
+    document.getElementById("newRoundBtn").onclick=()=>location.reload();
+    return;
+  }
+  updateTurn();
+};
+</script>
+
+</body>
+</html>
